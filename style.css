@@ -1,0 +1,213 @@
+/* =====================================================
+   FridgeToFork — Human, Kitchen-First UI
+   ===================================================== */
+
+/* ---------------- Base Styling ---------------- */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+  background: #1f1f1d; /* warm charcoal */
+  color: #f3f4f6;
+  margin: 0;
+  padding: 20px;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 520px;
+  margin: auto;
+  padding-bottom: 60px;
+}
+
+/* ---------------- Headings & Text ---------------- */
+h1 {
+  text-align: center;
+  margin-bottom: 6px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  text-align: center;
+  color: #b6b6aa;
+  margin-bottom: 26px;
+  font-size: 15px;
+}
+
+/* ---------------- Sections ---------------- */
+.section {
+  margin-top: 24px;
+}
+
+/* ---------------- Inputs & Buttons ---------------- */
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #2e2e2b;
+  font-size: 15px;
+  background: #262624;
+  color: #f3f4f6;
+}
+
+input::placeholder {
+  color: #9ca3af;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 14px;
+  border-radius: 12px;
+  border: none;
+  background: #5b7f4a; /* herb green */
+  color: #0f1a10;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #6b8f57;
+}
+
+/* ---------------- Cards / Results ---------------- */
+.card {
+  background: #262624;
+  padding: 18px;
+  border-radius: 14px;
+  margin-top: 24px;
+  display: none;
+  border: 1px solid #2e2e2b;
+}
+
+.section-title {
+  margin-top: 10px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.confidence {
+  font-size: 14px;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+/* ---------------- Links ---------------- */
+a {
+  color: #8fb573;
+  text-decoration: none;
+  margin-right: 12px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------------- Top Navigation ---------------- */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(32, 32, 30, 0.85);
+  backdrop-filter: blur(6px);
+  padding: 12px 18px;
+  border-bottom: 1px solid #2e2e2b;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-nav .logo {
+  width: 34px;
+  height: 34px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.top-nav .app-name {
+  font-weight: 600;
+  font-size: 18px;
+  color: #8fb573;
+}
+
+.top-nav a {
+  color: #e5e7eb;
+  margin-left: 16px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.top-nav a:hover {
+  color: #8fb573;
+}
+
+/* ---------------- Pantry List ---------------- */
+ul {
+  padding-left: 0;
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #262624;
+  border: 1px solid #2e2e2b;
+  cursor: pointer;
+  transition: background 0.15s ease, border 0.15s ease;
+}
+
+li:hover {
+  background: #2d2d2a;
+  border-color: #3a3a35;
+}
+
+li.selected {
+  background: #5b7f4a;
+  color: #0f1a10;
+  border-color: #6b8f57;
+  font-weight: 600;
+}
+
+/* Optional: if you later add icons or emojis */
+li img {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---------------- Mobile ---------------- */
+@media (max-width: 480px) {
+  .top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .top-nav .nav-right {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+/* ---------------- Subtle Chef Hat Watermark ---------------- */
+body::after {
+  content: "";
+  position: fixed;
+  bottom: -40px;
+  right: -40px;
+  width: 420px;
+  height: 420px;
+  background: url("../images/chef-hat.png") no-repeat center;
+  background-size: contain;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}

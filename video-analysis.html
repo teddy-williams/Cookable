@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FridgeToFork - Video Analysis</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<style>
+/* Spinner styling */
+#loadingSpinner {
+  display: none;
+  margin: 20px auto;
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #22c55e;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Navigation Bar -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <img src="../assets/images/logo.png" alt="FridgeToFork Logo" class="logo">
+    <span class="app-name">FridgeToFork</span>
+  </div>
+  <div class="nav-right">
+    <a href="index.html">Home</a>
+    <a href="video-analysis.html">Video Analysis</a>
+    <a href="settings.html">Settings</a>
+    <a href="about.html">About</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1>Analyze a Recipe Video</h1>
+  <p class="subtitle">Paste a YouTube, Instagram, or other recipe video link:</p>
+
+  <input id="videoUrl" placeholder="Enter video link here">
+  <button id="analyzeBtn">Analyze Recipe</button>
+
+  <div id="loadingSpinner"></div>
+
+  <div id="result" class="card">
+    <h2 id="dishName"></h2>
+    <div id="confidence" class="confidence"></div>
+
+    <div class="section-title">✅ You already have</div>
+    <ul id="haveList"></ul>
+
+    <div class="section-title">🛒 You need to buy</div>
+    <ul id="buyList"></ul>
+
+    <button onclick="copyShoppingList()">Copy Shopping List</button>
+  </div>
+</div>
+
+<script src="../assets/js/scripts.js"></script>
+<script>
+document.getElementById("analyzeBtn").addEventListener("click", async () => {
+  const pantry = loadPantry();
+  if(!pantry.length) {
+    alert("Please select your pantry first.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const videoUrl = document.getElementById("videoUrl").value.trim();
+  if(!videoUrl) {
+    alert("Please paste a video link.");
+    return;
+  }
+
+  const resultCard = document.getElementById("result");
+  const spinner = document.getElementById("loadingSpinner");
+
+  resultCard.style.display = "none"; // hide previous result
+  spinner.style.display = "block"; // show loading spinner
+
+  try {
+    const parsed = await analyzeVideo(videoUrl, pantry);
+
+    if(!parsed || (!parsed.have && !parsed.need_to_buy)) {
+      alert("Could not analyze video. Make sure the link is valid.");
+      spinner.style.display = "none";
+      return;
+    }
+
+    displayAnalysisResult(parsed);
+  } catch(err) {
+    console.error(err);
+    alert("Error fetching AI analysis. Try again later.");
+  } finally {
+    spinner.style.display = "none";
+  }
+});
+</script>
+</body>
+</html>

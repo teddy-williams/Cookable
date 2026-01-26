@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FridgeToFork - Pantry</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<!-- Top Navigation Bar -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <img src="../assets/images/logo.png" alt="FridgeToFork Logo" class="logo">
+    <span class="app-name">FridgeToFork</span>
+  </div>
+  <div class="nav-right">
+    <a href="index.html">Home</a>
+    <a href="video-analysis.html">Video Analysis</a>
+    <a href="settings.html">Settings</a>
+    <a href="about.html">About</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1>Select Your Pantry</h1>
+  <p class="subtitle">Tap or click ingredients you already have:</p>
+
+  <ul id="ingredientsList"></ul>
+
+  <input id="customItem" placeholder="Add custom ingredient">
+  <button onclick="addCustomPantryItem('customItem', selected, 'ingredientsList', DEFAULT_PANTRY)">Add Item</button>
+
+  <button onclick="savePantry(Array.from(selected)); window.location.href='video-analysis.html';">Confirm Pantry</button>
+</div>
+
+<script src="../assets/js/scripts.js"></script>
+<script>
+const DEFAULT_PANTRY = ["salt","black pepper","olive oil","garlic","onion","butter","eggs","milk","rice","pasta"];
+let selected = new Set(loadPantry());
+renderPantryList("ingredientsList", DEFAULT_PANTRY, selected);
+</script>
+</body>
+</html>

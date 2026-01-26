@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FridgeToFork - Settings</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<!-- Top Navigation Bar -->
+<nav class="top-nav">
+  <div class="nav-left">
+    <img src="../assets/images/logo.png" alt="FridgeToFork Logo" class="logo">
+    <span class="app-name">FridgeToFork</span>
+  </div>
+  <div class="nav-right">
+    <a href="index.html">Home</a>
+    <a href="video-analysis.html">Video Analysis</a>
+    <a href="settings.html">Settings</a>
+    <a href="about.html">About</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1>Settings</h1>
+  <p class="subtitle">Customize your preferences:</p>
+
+  <div class="section">
+    <h2>Notifications</h2>
+    <label>
+      <input type="checkbox" id="notifyToggle"> Enable notifications
+    </label>
+  </div>
+
+  <div class="section">
+    <h2>Units</h2>
+    <select id="unitSelect">
+      <option value="metric">Metric (grams, liters)</option>
+      <option value="imperial">Imperial (oz, cups)</option>
+    </select>
+  </div>
+
+  <button onclick="saveSettingsBtn()">Save Settings</button>
+</div>
+
+<script src="../assets/js/scripts.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const saved = loadSettings();
+  document.getElementById("notifyToggle").checked = saved.notifications || false;
+  document.getElementById("unitSelect").value = saved.units || "metric";
+});
+
+function saveSettingsBtn() {
+  const settings = {
+    notifications: document.getElementById("notifyToggle").checked,
+    units: document.getElementById("unitSelect").value
+  };
+  saveSettings(settings);
+  alert("Settings saved!");
+}
+</script>
+</body>
+</html>
