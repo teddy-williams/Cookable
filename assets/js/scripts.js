@@ -32,7 +32,7 @@ function renderPantryList(listElementId, defaultItems, selectedSet) {
 
     // Optional: small food icon
     const icon = document.createElement("img");
-    icon.src = "../assets/images/pantry.svg"; // replace with specific icons if you like
+    icon.src = "../assets/images/food.png"; // replace with specific icons if you like
     icon.alt = "";
 
     li.appendChild(icon);
@@ -100,3 +100,4 @@ function copyShoppingList() {
   const items = [...document.querySelectorAll("#buyList li")].map(li=>"- "+li.textContent).join("\n");
   copyToClipboard(items);
 }
+
