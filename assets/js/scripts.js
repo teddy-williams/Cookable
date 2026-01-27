@@ -58,6 +58,29 @@ function addCustomPantryItem(inputId, selectedSet, listElementId, defaultItems) 
   }
 }
 
+const ytId = extractYouTubeID(videoUrl);
+if (ytId) {
+  try {
+    const captions = await fetchYouTubeCaptions(ytId);
+    const ingredients = extractIngredientsFromText(captions);
+
+    const pantrySet = new Set(pantry);
+    const have = ingredients.filter(i => pantrySet.has(i));
+    const need = ingredients.filter(i => !pantrySet.has(i));
+
+    displayAnalysisResult({
+      dish_name: "Detected from video",
+      confidence: "medium",
+      have,
+      need_to_buy: need
+    });
+
+    return; // Skip /analyze for now
+  } catch (e) {
+    console.warn("Caption analysis failed, falling back to AI");
+  }
+}
+
 // ================= Video Analysis Functions =================
 async function analyzeVideo(videoUrl, pantry) {
   if(!pantry.length) { 
@@ -148,4 +171,5 @@ function extractIngredientsFromText(text) {
 
   return Array.from(found);
 }
+
 
