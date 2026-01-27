@@ -172,4 +172,29 @@ function extractIngredientsFromText(text) {
   return Array.from(found);
 }
 
+// ================= Caption-based Ingredient Extraction =================
+async function fetchYouTubeCaptions(videoId) {
+  const res = await fetch(`/api/youtube-captions?videoId=${videoId}`);
+  if (!res.ok) throw new Error("No captions available");
+  const data = await res.json();
+  return data.transcript;
+}
+
+function extractIngredientsFromText(text) {
+  const COMMON_INGREDIENTS = [
+    "salt","pepper","olive oil","garlic","onion","butter",
+    "eggs","milk","cheese","chicken","beef","flour",
+    "sugar","tomato","rice","pasta","oil"
+  ];
+
+  const found = new Set();
+  const lower = text.toLowerCase();
+
+  COMMON_INGREDIENTS.forEach(item => {
+    if (lower.includes(item)) found.add(item);
+  });
+
+  return Array.from(found);
+}
+
 
