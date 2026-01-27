@@ -50,6 +50,16 @@
   <input id="videoUrl" placeholder="Enter video link here">
   <button id="analyzeBtn">Analyze Recipe</button>
 
+  <!-- YouTube Preview (NEW – non-breaking) -->
+  <div id="youtubePreview" class="video-wrapper" style="display:none;">
+    <iframe
+      id="ytPlayer"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  </div>
+
   <div id="loadingSpinner"></div>
 
   <div id="result" class="card">
@@ -82,11 +92,14 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
     return;
   }
 
+  // NEW: Show YouTube preview if applicable
+  maybeLoadYouTubePreview(videoUrl);
+
   const resultCard = document.getElementById("result");
   const spinner = document.getElementById("loadingSpinner");
 
-  resultCard.style.display = "none"; // hide previous result
-  spinner.style.display = "block"; // show loading spinner
+  resultCard.style.display = "none";
+  spinner.style.display = "block";
 
   try {
     const parsed = await analyzeVideo(videoUrl, pantry);
@@ -108,4 +121,3 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
 </script>
 </body>
 </html>
-
