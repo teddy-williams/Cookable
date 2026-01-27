@@ -58,29 +58,6 @@ function addCustomPantryItem(inputId, selectedSet, listElementId, defaultItems) 
   }
 }
 
-const ytId = extractYouTubeID(videoUrl);
-if (ytId) {
-  try {
-    const captions = await fetchYouTubeCaptions(ytId);
-    const ingredients = extractIngredientsFromText(captions);
-
-    const pantrySet = new Set(pantry);
-    const have = ingredients.filter(i => pantrySet.has(i));
-    const need = ingredients.filter(i => !pantrySet.has(i));
-
-    displayAnalysisResult({
-      dish_name: "Detected from video",
-      confidence: "medium",
-      have,
-      need_to_buy: need
-    });
-
-    return; // Skip /analyze for now
-  } catch (e) {
-    console.warn("Caption analysis failed, falling back to AI");
-  }
-}
-
 // ================= Video Analysis Functions =================
 async function analyzeVideo(videoUrl, pantry) {
   if(!pantry.length) { 
@@ -125,7 +102,7 @@ function copyShoppingList() {
   copyToClipboard(items);
 }
 
-/* ================= YouTube Preview (NEW, SAFE) ================= */
+// ================= YouTube Preview =================
 function maybeLoadYouTubePreview(url) {
   const id = extractYouTubeID(url);
   const wrapper = document.getElementById("youtubePreview");
@@ -148,30 +125,6 @@ function extractYouTubeID(url) {
   return match ? match[1] : null;
 }
 
-async function fetchYouTubeCaptions(videoId) {
-  const res = await fetch(`/api/youtube-captions?videoId=${videoId}`);
-  if (!res.ok) throw new Error("Captions unavailable");
-  const data = await res.json();
-  return data.transcript;
-}
-
-function extractIngredientsFromText(text) {
-  const COMMON_INGREDIENTS = [
-    "salt","pepper","olive oil","garlic","onion","butter",
-    "eggs","milk","cheese","chicken","beef","flour",
-    "sugar","tomato","rice","pasta"
-  ];
-
-  const found = new Set();
-  const lower = text.toLowerCase();
-
-  COMMON_INGREDIENTS.forEach(item => {
-    if (lower.includes(item)) found.add(item);
-  });
-
-  return Array.from(found);
-}
-
 // ================= Caption-based Ingredient Extraction =================
 async function fetchYouTubeCaptions(videoId) {
   const res = await fetch(`/api/youtube-captions?videoId=${videoId}`);
@@ -189,12 +142,8 @@ function extractIngredientsFromText(text) {
 
   const found = new Set();
   const lower = text.toLowerCase();
-
   COMMON_INGREDIENTS.forEach(item => {
     if (lower.includes(item)) found.add(item);
   });
-
   return Array.from(found);
 }
-
-
