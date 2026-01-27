@@ -22,6 +22,25 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* YouTube Video Preview */
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  margin-top: 18px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #2e2e2b;
+}
+
+.video-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
 </style>
 </head>
 <body>
@@ -50,11 +69,9 @@
   <input id="videoUrl" placeholder="Enter video link here">
   <button id="analyzeBtn">Analyze Recipe</button>
 
-  <!-- YouTube Preview (NEW – non-breaking) -->
+  <!-- YouTube Preview -->
   <div id="youtubePreview" class="video-wrapper" style="display:none;">
-    <iframe
-      id="ytPlayer"
-      frameborder="0"
+    <iframe id="ytPlayer" frameborder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowfullscreen>
     </iframe>
@@ -80,20 +97,17 @@
 <script>
 document.getElementById("analyzeBtn").addEventListener("click", async () => {
   const pantry = loadPantry();
-  if(!pantry.length) {
+  if (!pantry.length) {
     alert("Please select your pantry first.");
     window.location.href = "index.html";
     return;
   }
 
   const videoUrl = document.getElementById("videoUrl").value.trim();
-  if(!videoUrl) {
+  if (!videoUrl) {
     alert("Please paste a video link.");
     return;
   }
-
-  // NEW: Show YouTube preview if applicable
-  maybeLoadYouTubePreview(videoUrl);
 
   const resultCard = document.getElementById("result");
   const spinner = document.getElementById("loadingSpinner");
@@ -102,18 +116,47 @@ document.getElementById("analyzeBtn").addEventListener("click", async () => {
   spinner.style.display = "block";
 
   try {
+    // --- YouTube preview ---
+    maybeLoadYouTubePreview(videoUrl);
+
+    // --- Try Phase 1: Captions extraction ---
+    const ytId = extractYouTubeID(videoUrl);
+    if (ytId) {
+      try {
+        const captions = await fetchYouTubeCaptions(ytId);
+        const detected = extractIngredientsFromText(captions);
+
+        const pantrySet = new Set(pantry);
+        const have = detected.filter(i => pantrySet.has(i));
+        const need = detected.filter(i => !pantrySet.has(i));
+
+        displayAnalysisResult({
+          dish_name: "Detected from video",
+          confidence: "medium",
+          have,
+          need_to_buy: need
+        });
+
+        return; // Skip AI fallback
+      } catch (e) {
+        console.warn("Caption extraction failed, falling back to AI", e);
+      }
+    }
+
+    // --- Fallback AI analysis ---
     const parsed = await analyzeVideo(videoUrl, pantry);
 
-    if(!parsed || (!parsed.have && !parsed.need_to_buy)) {
+    if (!parsed || (!parsed.have && !parsed.need_to_buy)) {
       alert("Could not analyze video. Make sure the link is valid.");
       spinner.style.display = "none";
       return;
     }
 
     displayAnalysisResult(parsed);
-  } catch(err) {
+
+  } catch (err) {
     console.error(err);
-    alert("Error fetching AI analysis. Try again later.");
+    alert("Error fetching analysis. Try again later.");
   } finally {
     spinner.style.display = "none";
   }
