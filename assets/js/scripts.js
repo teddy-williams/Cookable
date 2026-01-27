@@ -30,9 +30,8 @@ function renderPantryList(listElementId, defaultItems, selectedSet) {
   defaultItems.forEach(item => {
     const li = document.createElement("li");
 
-    // Optional: small food icon
     const icon = document.createElement("img");
-    icon.src = "../assets/images/food.png"; // replace with specific icons if you like
+    icon.src = "../assets/images/food.png";
     icon.alt = "";
 
     li.appendChild(icon);
@@ -97,7 +96,31 @@ function fillList(id, items) {
 }
 
 function copyShoppingList() {
-  const items = [...document.querySelectorAll("#buyList li")].map(li=>"- "+li.textContent).join("\n");
+  const items = [...document.querySelectorAll("#buyList li")]
+    .map(li=>"- "+li.textContent)
+    .join("\n");
   copyToClipboard(items);
 }
 
+/* ================= YouTube Preview (NEW, SAFE) ================= */
+function maybeLoadYouTubePreview(url) {
+  const id = extractYouTubeID(url);
+  const wrapper = document.getElementById("youtubePreview");
+  const iframe = document.getElementById("ytPlayer");
+
+  if (!id) {
+    wrapper.style.display = "none";
+    iframe.src = "";
+    return;
+  }
+
+  iframe.src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+  wrapper.style.display = "block";
+}
+
+function extractYouTubeID(url) {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
