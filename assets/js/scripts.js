@@ -124,3 +124,11 @@ function extractYouTubeID(url) {
   );
   return match ? match[1] : null;
 }
+
+async function fetchYouTubeCaptions(videoId) {
+  const res = await fetch(`/api/youtube-captions?videoId=${videoId}`);
+  if (!res.ok) throw new Error("Captions unavailable");
+  const data = await res.json();
+  return data.transcript;
+}
+
