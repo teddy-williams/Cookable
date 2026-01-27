@@ -197,6 +197,7 @@ li img {
     gap: 12px;
   }
 }
+
 /* Full-screen Background Image */
 .background-image {
     position: fixed;        /* Stays in place when scrolling */
@@ -208,3 +209,22 @@ li img {
     opacity: 0.3;           /* Partially visible */
     z-index: -1;            /* Behind all content */
 }
+/* YouTube Video Preview */
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  margin-top: 18px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #2e2e2b;
+}
+
+.video-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
