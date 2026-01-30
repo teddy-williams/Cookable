@@ -60,21 +60,53 @@ function addCustomPantryItem(inputId, selectedSet, listElementId, defaultItems) 
 
 // ================= Video Analysis Functions =================
 async function analyzeVideo(videoUrl, pantry) {
-  if(!pantry.length) { 
-    alert("Please select your pantry first."); 
-    window.location.href="index.html"; 
-    return; 
+  if (!pantry.length) {
+    alert("Please select your pantry first.");
+    window.location.href = "index.html";
+    return;
   }
 
-  const res = await fetch("/analyze", {
+  const res = await fetch("/api/main", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ video_url: videoUrl, pantry })
+    body: JSON.stringify({ url: videoUrl })
   });
 
+  if (!res.ok) {
+    throw new Error("Failed to analyze video");
+  }
+
   const data = await res.json();
-  const parsed = data.result || data;
-  return parsed;
+
+  if (!data.success) {
+    throw new Error("Could not extract recipe from video");
+  }
+
+  return normalizeFlavorFetchResult(data, pantry);
+}
+
+function normalizeFlavorFetchResult(data, pantry) {
+  const ingredients = (data.ingredients || [])
+    .map(i => (i.name || "").toLowerCase());
+
+  const pantryLower = pantry.map(p => p.toLowerCase());
+
+  const have = [];
+  const needToBuy = [];
+
+  ingredients.forEach(item => {
+    if (!item) return;
+
+    const match = pantryLower.some(p => item.includes(p) || p.includes(item));
+    match ? have.push(item) : needToBuy.push(item);
+  });
+
+  return {
+    dish_name: data.title || "Recipe",
+    confidence: "AI extracted",
+    have,
+    need_to_buy: needToBuy
+  };
 }
 
 function displayAnalysisResult(parsed) {
@@ -124,5 +156,6 @@ function extractYouTubeID(url) {
   );
   return match ? match[1] : null;
 }
+
 
 
