@@ -3,10 +3,17 @@ from flask_cors import CORS
 import os
 import requests
 import json
+import re
+
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import (
+    TranscriptsDisabled,
+    NoTranscriptFound,
+    VideoUnavailable
+)
 
 # =================== Config ===================
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 if not OPENROUTER_API_KEY:
@@ -15,49 +22,70 @@ if not OPENROUTER_API_KEY:
 app = Flask(__name__)
 CORS(app)
 
-# =================== AI Logic ===================
-def analyze_recipe_video(video_url: str, pantry: list[str]) -> dict:
+
+# =================== Helpers ===================
+
+def is_youtube_url(url: str) -> bool:
+    return ("youtube.com" in url) or ("youtu.be" in url)
+
+
+def extract_youtube_video_id(url: str) -> str | None:
     """
-    Analyze a recipe video link and return structured ingredient data.
-    NOTE: The model cannot truly 'watch' the video from a link.
-    It will infer from whatever metadata is available.
+    Supports:
+    - https://www.youtube.com/watch?v=VIDEOID
+    - https://youtu.be/VIDEOID
+    - https://www.youtube.com/shorts/VIDEOID
     """
 
-    system_prompt = """
-You are a highly accurate cooking assistant.
+    url = url.strip()
 
-The user provides a recipe video link. You must infer the dish and ingredients.
+    # youtu.be/<id>
+    m = re.search(r"youtu\.be\/([a-zA-Z0-9_-]{6,})", url)
+    if m:
+        return m.group(1)
 
-Rules:
-- Extract the dish name if possible.
-- Infer ingredients from the URL text and likely recipe patterns.
-- Cross-check ingredients against the user's pantry.
-- If unsure, assume the ingredient is required.
-- Return ONLY valid JSON. No explanations. No markdown.
+    # youtube.com/watch?v=<id>
+    m = re.search(r"v=([a-zA-Z0-9_-]{6,})", url)
+    if m:
+        return m.group(1)
 
-Output JSON format:
-{
-  "dish_name": "string",
-  "have": ["ingredient1", "ingredient2"],
-  "need_to_buy": ["ingredient3", "ingredient4"],
-  "confidence": number
-}
-"""
+    # youtube.com/shorts/<id>
+    m = re.search(r"youtube\.com\/shorts\/([a-zA-Z0-9_-]{6,})", url)
+    if m:
+        return m.group(1)
 
-    user_prompt = f"""
-Video URL:
-{video_url}
+    return None
 
-User pantry:
-{", ".join(pantry)}
 
-Return JSON only.
-"""
+def fetch_youtube_transcript(video_id: str) -> str:
+    """
+    Fetch transcript text. Tries English first, then any available.
+    Returns a big text block.
+    """
+    transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
+    # Try English first
+    try:
+        transcript = transcript_list.find_transcript(["en"])
+    except:
+        # fallback: first transcript available
+        transcript = transcript_list.find_generated_transcript(transcript_list._manually_created_transcripts.keys()) \
+            if transcript_list._manually_created_transcripts else transcript_list.find_generated_transcript(
+                transcript_list._generated_transcripts.keys()
+            )
+
+    lines = transcript.fetch()
+    text = " ".join([x["text"] for x in lines])
+
+    # Cleanup
+    text = text.replace("\n", " ").strip()
+    return text
+
+
+def call_openrouter(system_prompt: str, user_prompt: str) -> dict:
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        # OpenRouter recommends these:
         "HTTP-Referer": "https://cookable.onrender.com",
         "X-Title": "Cookable (FridgeToFork)"
     }
@@ -69,35 +97,25 @@ Return JSON only.
             {"role": "user", "content": user_prompt.strip()}
         ],
         "temperature": 0.2,
-        "max_tokens": 600
+        "max_tokens": 800
     }
 
     response = requests.post(
         OPENROUTER_URL,
         headers=headers,
         json=payload,
-        timeout=45
+        timeout=60
     )
 
     response.raise_for_status()
     data = response.json()
-
     raw_content = data["choices"][0]["message"]["content"].strip()
 
-    # Sometimes models wrap JSON in ```json ... ```
+    # Remove markdown fences if model adds them
     raw_content = raw_content.replace("```json", "").replace("```", "").strip()
 
     try:
-        parsed = json.loads(raw_content)
-
-        # Defensive cleanup (avoid crashes)
-        return {
-            "dish_name": parsed.get("dish_name", "Unknown recipe"),
-            "have": parsed.get("have", []),
-            "need_to_buy": parsed.get("need_to_buy", []),
-            "confidence": parsed.get("confidence", 0)
-        }
-
+        return json.loads(raw_content)
     except json.JSONDecodeError:
         return {
             "dish_name": "Unknown recipe",
@@ -108,6 +126,93 @@ Return JSON only.
             "raw": raw_content
         }
 
+
+# =================== Core AI ===================
+
+def analyze_recipe_video(video_url: str, pantry: list[str]) -> dict:
+    """
+    For YouTube links:
+      - fetch transcript and feed it to LLM
+    For non-YouTube:
+      - fallback to link-only inference (for now)
+    """
+
+    system_prompt = """
+You are a highly accurate cooking assistant.
+
+You will be given:
+- A recipe video URL
+- The user's pantry list
+- Sometimes a transcript of the recipe video
+
+Your job:
+1) Identify the dish name.
+2) Extract a realistic full ingredient list.
+3) Compare it to pantry.
+4) Output ONLY valid JSON.
+
+Rules:
+- Prefer transcript content over guessing.
+- Ingredients should be normalized (e.g., "olive oil" not "oil").
+- If transcript mentions optional ingredients, include them as optional only if clearly stated.
+- If unsure, assume the ingredient is required.
+- No markdown. No explanations. JSON only.
+
+Return JSON exactly:
+{
+  "dish_name": "string",
+  "have": ["ingredient1", "ingredient2"],
+  "need_to_buy": ["ingredient3", "ingredient4"],
+  "confidence": number
+}
+"""
+
+    transcript_text = ""
+    transcript_status = "not_attempted"
+
+    if is_youtube_url(video_url):
+        video_id = extract_youtube_video_id(video_url)
+
+        if video_id:
+            try:
+                transcript_text = fetch_youtube_transcript(video_id)
+                transcript_status = "success"
+            except (TranscriptsDisabled, NoTranscriptFound):
+                transcript_status = "no_transcript"
+            except VideoUnavailable:
+                transcript_status = "unavailable"
+            except Exception:
+                transcript_status = "error"
+        else:
+            transcript_status = "bad_video_id"
+
+    user_prompt = f"""
+Video URL:
+{video_url}
+
+User pantry:
+{", ".join(pantry)}
+
+Transcript status:
+{transcript_status}
+
+Transcript text (if available):
+{transcript_text[:12000]}
+
+Now return JSON only.
+"""
+
+    result = call_openrouter(system_prompt, user_prompt)
+
+    # Attach transcript status (useful for debugging)
+    result["_debug"] = {
+        "transcript_status": transcript_status,
+        "transcript_length": len(transcript_text)
+    }
+
+    return result
+
+
 # =================== Routes ===================
 
 @app.route("/", methods=["GET"])
@@ -116,6 +221,7 @@ def home():
         "status": "ok",
         "message": "Cookable API is running. Use POST /analyze"
     })
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -139,6 +245,5 @@ def analyze():
         return jsonify({"error": str(e)}), 500
 
 
-# =================== Local Run ===================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
