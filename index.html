@@ -1,49 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FridgeToFork - Pantry</title>
-<link rel="stylesheet" href="../assets/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FridgeToFork - Pantry</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
+
 <body>
 
-<!-- Full-screen Background Image -->
-<img src="../assets/images/chef.png" class="background-image" alt="Background">
+  <!-- Top Navigation Bar -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <img src="../assets/images/logo.png" alt="FridgeToFork Logo" class="logo" />
+      <span class="app-name">FridgeToFork</span>
+    </div>
+    <div class="nav-right">
+      <a href="index.html">Home</a>
+      <a href="video-analysis.html">Video Analysis</a>
+      <a href="settings.html">Settings</a>
+      <a href="about.html">About</a>
+    </div>
+  </nav>
 
-<!-- Top Navigation Bar -->
-<nav class="top-nav">
-  <div class="nav-left">
-    <img src="../assets/images/pantry.svg" alt="FridgeToFork Logo" class="logo">
-    <span class="app-name">FridgeToFork</span>
+  <div class="container">
+
+    <!-- ======================================================
+         NEW: HERO / INTRO SECTION
+         ====================================================== -->
+    <div class="card" style="display:block;">
+      <h1 style="margin-top:0;">Cook smarter with what you already have 🍳</h1>
+      <p class="subtitle" style="margin-bottom:12px;">
+        FridgeToFork helps you turn your pantry into meals — without wasting money or time.
+      </p>
+
+      <div class="section">
+        <div class="section-title">What this app does</div>
+        <p style="margin-top:6px; color:#d6d6cc;">
+          You paste a recipe video link (YouTube first), and the AI tells you:
+          <b>what ingredients you already have</b> and <b>what you still need to buy</b>.
+        </p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Who it’s for</div>
+        <ul style="margin:0; padding-left:18px; color:#d6d6cc;">
+          <li style="background:transparent; border:none; padding:0; margin:6px 0;">Busy people who don’t want to overthink dinner</li>
+          <li style="background:transparent; border:none; padding:0; margin:6px 0;">Students & young professionals trying to save money</li>
+          <li style="background:transparent; border:none; padding:0; margin:6px 0;">Anyone who buys groceries… then forgets what they already have</li>
+        </ul>
+      </div>
+
+      <div class="section">
+        <div class="section-title">How it works</div>
+        <ol style="margin:0; padding-left:18px; color:#d6d6cc;">
+          <li style="margin:6px 0;">Tap what you already have in your pantry</li>
+          <li style="margin:6px 0;">Confirm your pantry</li>
+          <li style="margin:6px 0;">Paste a recipe video link and get your shopping list</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         Pantry Selection
+         ====================================================== -->
+    <h1 style="margin-top:26px;">Select Your Pantry</h1>
+    <p class="subtitle">Tap or click ingredients you already have:</p>
+
+    <ul id="ingredientsList"></ul>
+
+    <input type="text" id="customItem" placeholder="Add custom ingredient" />
+    <button onclick="addCustomItem()">Add Item</button>
+    <button onclick="confirmPantry()">Confirm Pantry</button>
+
   </div>
-  <div class="nav-right">
-    <a href="index.html">Home</a>
-    <a href="video-analysis.html">Video Analysis</a>
-    <a href="settings.html">Settings</a>
-    <a href="about.html">About</a>
-  </div>
-</nav>
 
-<div class="container">
-  <h1>Select Your Pantry</h1>
-  <p class="subtitle">Tap or click ingredients you already have:</p>
+  <script src="../assets/js/scripts.js"></script>
 
-  <ul id="ingredientsList"></ul>
+  <script>
+    const DEFAULT_PANTRY = [
+      "salt", "black pepper", "olive oil", "garlic", "onion",
+      "butter", "eggs", "milk", "rice", "pasta"
+    ];
 
-  <input id="customItem" placeholder="Add custom ingredient">
-  <button onclick="addCustomPantryItem('customItem', selected, 'ingredientsList', DEFAULT_PANTRY)">Add Item</button>
+    let selected = new Set(loadPantry());
 
-  <button onclick="savePantry(Array.from(selected)); window.location.href='video-analysis.html';">Confirm Pantry</button>
-</div>
+    function renderList() {
+      const ul = document.getElementById("ingredientsList");
+      ul.innerHTML = "";
 
-<script src="../assets/js/scripts.js"></script>
-<script>
-const DEFAULT_PANTRY = ["Salt","Black pepper","Olive oil","Garlic","Onion","Butter","Eggs","Milk","Rice","Pasta"];
-let selected = new Set(loadPantry());
-renderPantryList("ingredientsList", DEFAULT_PANTRY, selected);
-</script>
+      DEFAULT_PANTRY.forEach(item => {
+        const li = document.createElement("li");
+
+        // emoji icon
+        const icon = document.createElement("span");
+        icon.textContent = "🥘";
+        icon.style.opacity = "0.9";
+
+        const text = document.createElement("span");
+        text.textContent = item.charAt(0).toUpperCase() + item.slice(1);
+
+        li.appendChild(icon);
+        li.appendChild(text);
+
+        if (selected.has(item)) li.classList.add("selected");
+
+        li.onclick = () => {
+          selected.has(item) ? selected.delete(item) : selected.add(item);
+          renderList();
+        };
+
+        ul.appendChild(li);
+      });
+    }
+
+    function addCustomItem() {
+      const input = document.getElementById("customItem");
+      const val = input.value.trim().toLowerCase();
+
+      if (!val) return;
+
+      selected.add(val);
+      input.value = "";
+      renderList();
+    }
+
+    function confirmPantry() {
+      savePantry(Array.from(selected));
+      window.location.href = "video-analysis.html";
+    }
+
+    renderList();
+  </script>
+
 </body>
 </html>
-
-
