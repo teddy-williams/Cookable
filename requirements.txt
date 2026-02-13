@@ -3,4 +3,3 @@ requests
 python-dotenv
 gunicorn
 flask-cors
-youtube-transcript-api
