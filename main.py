@@ -2,13 +2,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import requests
-from dotenv import load_dotenv
+import json
 
-load_dotenv()
-
+# =================== Config ===================
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 if not OPENROUTER_API_KEY:
-    raise Exception("Please set OPENROUTER_API_KEY in your .env file!")
+    raise Exception("Missing OPENROUTER_API_KEY. Add it in Render Environment Variables.")
 
 app = Flask(__name__)
 CORS(app)
@@ -16,22 +18,30 @@ CORS(app)
 # =================== AI Logic ===================
 def analyze_recipe_video(video_url: str, pantry: list[str]) -> dict:
     """
-    Analyze a recipe video link (YouTube, Instagram, TikTok, etc.)
-    and return structured ingredient data.
+    Analyze a recipe video link and return structured ingredient data.
+    NOTE: The model cannot truly 'watch' the video from a link.
+    It will infer from whatever metadata is available.
     """
 
     system_prompt = """
 You are a highly accurate cooking assistant.
 
-Your task is to analyze a recipe video link from any social media platform
-(YouTube, Instagram, TikTok, Facebook, etc.) and determine the ingredients.
+The user provides a recipe video link. You must infer the dish and ingredients.
 
 Rules:
 - Extract the dish name if possible.
-- Infer ingredients from the video title, description, transcript, and visuals.
+- Infer ingredients from the URL text and likely recipe patterns.
 - Cross-check ingredients against the user's pantry.
 - If unsure, assume the ingredient is required.
 - Return ONLY valid JSON. No explanations. No markdown.
+
+Output JSON format:
+{
+  "dish_name": "string",
+  "have": ["ingredient1", "ingredient2"],
+  "need_to_buy": ["ingredient3", "ingredient4"],
+  "confidence": number
+}
 """
 
     user_prompt = f"""
@@ -41,20 +51,15 @@ Video URL:
 User pantry:
 {", ".join(pantry)}
 
-Return JSON exactly in this format:
-{{
-  "dish_name": "string",
-  "have": ["ingredient1", "ingredient2"],
-  "need_to_buy": ["ingredient3", "ingredient4"],
-  "confidence": number
-}}
+Return JSON only.
 """
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost",
-        "X-Title": "FridgeToFork"
+        # OpenRouter recommends these:
+        "HTTP-Referer": "https://cookable.onrender.com",
+        "X-Title": "Cookable (FridgeToFork)"
     }
 
     payload = {
@@ -64,23 +69,35 @@ Return JSON exactly in this format:
             {"role": "user", "content": user_prompt.strip()}
         ],
         "temperature": 0.2,
-        "max_tokens": 500
+        "max_tokens": 600
     }
 
     response = requests.post(
         OPENROUTER_URL,
         headers=headers,
         json=payload,
-        timeout=30
+        timeout=45
     )
 
     response.raise_for_status()
     data = response.json()
 
-    raw_content = data["choices"][0]["message"]["content"]
+    raw_content = data["choices"][0]["message"]["content"].strip()
+
+    # Sometimes models wrap JSON in ```json ... ```
+    raw_content = raw_content.replace("```json", "").replace("```", "").strip()
 
     try:
-        return json.loads(raw_content)
+        parsed = json.loads(raw_content)
+
+        # Defensive cleanup (avoid crashes)
+        return {
+            "dish_name": parsed.get("dish_name", "Unknown recipe"),
+            "have": parsed.get("have", []),
+            "need_to_buy": parsed.get("need_to_buy", []),
+            "confidence": parsed.get("confidence", 0)
+        }
+
     except json.JSONDecodeError:
         return {
             "dish_name": "Unknown recipe",
@@ -92,27 +109,36 @@ Return JSON exactly in this format:
         }
 
 # =================== Routes ===================
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "status": "ok",
+        "message": "Cookable API is running. Use POST /analyze"
+    })
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    data = request.json
-    video_url = data.get("video_url")
+    data = request.get_json(silent=True) or {}
+
+    video_url = data.get("video_url", "").strip()
     pantry = data.get("pantry", [])
 
-    if not video_url or not isinstance(pantry, list):
-        return jsonify({"error": "Invalid request"}), 400
+    if not video_url:
+        return jsonify({"error": "Missing video_url"}), 400
+
+    if not isinstance(pantry, list):
+        return jsonify({"error": "pantry must be a list"}), 400
 
     try:
         result = analyze_recipe_video(video_url, pantry)
         return jsonify({"result": result})
+    except requests.exceptions.HTTPError as e:
+        return jsonify({"error": f"OpenRouter HTTP error: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# =================== Serve Frontend ===================
-@app.route("/")
-def index():
-    return app.send_static_file("index.html")
 
-# =================== Run ===================
+# =================== Local Run ===================
 if __name__ == "__main__":
-    app.run(debug=True)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
