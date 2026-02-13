@@ -66,7 +66,7 @@ async function analyzeVideo(videoUrl, pantry) {
     return;
   }
 
-  const res = await fetch("/api/main", {
+  const res = await fetch("https://cookable.onrender.com/analyze", ...)
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: videoUrl })
@@ -156,6 +156,7 @@ function extractYouTubeID(url) {
   );
   return match ? match[1] : null;
 }
+
 
 
 
