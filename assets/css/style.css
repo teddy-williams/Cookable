@@ -228,3 +228,36 @@ li img {
   height: 100%;
 }
 
+/* =====================================================
+   Desktop Layout Upgrade (Home Page)
+   ===================================================== */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+/* On larger screens, use 2 columns */
+@media (min-width: 900px) {
+  .home-grid {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+
+  .container {
+    max-width: 1100px; /* wider for desktop */
+  }
+}
+
+/* Keep pantry area readable */
+.pantry-panel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* Make hero card stretch nicely */
+.hero-panel {
+  width: 100%;
+}
+
