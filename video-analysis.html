@@ -1,164 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FridgeToFork - Video Analysis</title>
-<link rel="stylesheet" href="../assets/css/style.css">
-<style>
-/* Spinner styling */
-#loadingSpinner {
-  display: none;
-  margin: 20px auto;
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #22c55e;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* YouTube Video Preview */
-.video-wrapper {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%;
-  margin-top: 18px;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid #2e2e2b;
-}
-
-.video-wrapper iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FridgeToFork - Video Analysis</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
 </head>
+
 <body>
 
-<!-- Top Navigation Bar -->
-<nav class="top-nav">
-  <div class="nav-left">
-    <img src="../assets/images/pantry.svg" alt="FridgeToFork Logo" class="logo">
-    <span class="app-name">FridgeToFork</span>
+  <!-- Top Navigation Bar -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <img src="../assets/images/pantry.svg" alt="FridgeToFork Logo" class="logo" />
+      <span class="app-name">FridgeToFork</span>
+    </div>
+    <div class="nav-right">
+      <a href="index.html">Home</a>
+      <a href="video-analysis.html">Video Analysis</a>
+      <a href="settings.html">Settings</a>
+      <a href="about.html">About</a>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <div class="analysis-grid">
+
+      <!-- LEFT: INPUT + HELP -->
+      <div class="analysis-left">
+
+        <div class="card" style="display:block;">
+          <h1 style="margin-top:0;">Analyze a recipe video 🎥</h1>
+          <p class="subtitle" style="margin-bottom:10px;">
+            Paste a recipe link and we’ll tell you what you already have and what you need to buy.
+          </p>
+
+          <div class="section">
+            <div class="section-title">Your saved pantry</div>
+            <p style="color:#d6d6cc; margin-top:6px;">
+              We’ll compare the recipe against your pantry selection.
+            </p>
+
+            <div id="pantryPreview" class="chip-wrap" style="margin-top:10px;"></div>
+
+            <a href="index.html" style="display:inline-block; margin-top:10px;">
+              ← Update pantry
+            </a>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Recipe video link</div>
+            <input id="videoUrl" type="text" placeholder="Paste a YouTube recipe link..." />
+            <button id="analyzeBtn">Analyze Video</button>
+          </div>
+
+          <!-- Loading -->
+          <div id="loadingBox" class="loading-box" style="display:none;">
+            <div class="spinner"></div>
+            <div>
+              <div style="font-weight:600;">Analyzing recipe…</div>
+              <div style="font-size:14px; color:#c7c7bc;">
+                This can take a few seconds.
+              </div>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="errorBox" class="error-box" style="display:none;"></div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: RESULTS -->
+      <div class="analysis-right">
+
+        <div id="resultsCard" class="card" style="display:none;">
+          <div class="results-header">
+            <div>
+              <div class="results-title" id="dishName">Dish Name</div>
+              <div class="results-sub" id="dishSubtitle">AI extracted ingredients</div>
+            </div>
+            <div class="badge" id="confidenceBadge">Confidence: --%</div>
+          </div>
+
+          <div class="results-split">
+
+            <div class="results-block">
+              <div class="section-title">You already have</div>
+              <div id="haveList" class="chip-wrap"></div>
+            </div>
+
+            <div class="results-block">
+              <div class="section-title">You need to buy</div>
+              <div id="needList" class="chip-wrap"></div>
+            </div>
+
+          </div>
+
+          <button id="copyBtn" class="secondary-btn">Copy shopping list</button>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="card" style="display:block;">
+          <h1 style="margin-top:0;">Ready when you are 👨‍🍳</h1>
+          <p class="subtitle">
+            Paste a YouTube recipe link on the left, then hit “Analyze Video”.
+          </p>
+
+          <div style="margin-top:12px; color:#d6d6cc;">
+            Tip: Start with simple videos (short recipes, clear ingredients).
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
   </div>
-  <div class="nav-right">
-    <a href="index.html">Home</a>
-    <a href="video-analysis.html">Video Analysis</a>
-    <a href="settings.html">Settings</a>
-    <a href="about.html">About</a>
-  </div>
-</nav>
 
-<div class="container">
-  <h1>Analyze a Recipe Video</h1>
-  <p class="subtitle">Paste a YouTube, Instagram, or other recipe video link:</p>
+  <script src="../assets/js/scripts.js"></script>
 
-  <input id="videoUrl" placeholder="Enter video link here">
-  <button id="analyzeBtn">Analyze Recipe</button>
+  <script>
+    // ============================
+    // UI Helpers
+    // ============================
+    function show(el) { el.style.display = "block"; }
+    function hide(el) { el.style.display = "none"; }
 
-  <!-- YouTube Preview -->
-  <div id="youtubePreview" class="video-wrapper" style="display:none;">
-    <iframe id="ytPlayer" frameborder="0"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen>
-    </iframe>
-  </div>
+    function setError(msg) {
+      const box = document.getElementById("errorBox");
+      box.textContent = msg;
+      show(box);
+    }
 
-  <div id="loadingSpinner"></div>
+    function clearError() {
+      hide(document.getElementById("errorBox"));
+    }
 
-  <div id="result" class="card">
-    <h2 id="dishName"></h2>
-    <div id="confidence" class="confidence"></div>
+    function renderChips(container, items, type = "neutral") {
+      container.innerHTML = "";
 
-    <div class="section-title">✅ You already have</div>
-    <ul id="haveList"></ul>
+      if (!items || items.length === 0) {
+        const span = document.createElement("span");
+        span.className = "chip chip-muted";
+        span.textContent = "None found";
+        container.appendChild(span);
+        return;
+      }
 
-    <div class="section-title">🛒 You need to buy</div>
-    <ul id="buyList"></ul>
+      items.forEach(i => {
+        const chip = document.createElement("span");
+        chip.className = `chip chip-${type}`;
+        chip.textContent = i;
+        container.appendChild(chip);
+      });
+    }
 
-    <button onclick="copyShoppingList()">Copy Shopping List</button>
-  </div>
-</div>
+    // ============================
+    // Pantry Preview
+    // ============================
+    const pantry = loadPantry();
+    const pantryPreview = document.getElementById("pantryPreview");
 
-<script src="../assets/js/scripts.js"></script>
-<script>
-document.getElementById("analyzeBtn").addEventListener("click", async () => {
-  const pantry = loadPantry();
-  if (!pantry.length) {
-    alert("Please select your pantry first.");
-    window.location.href = "index.html";
-    return;
-  }
+    if (!pantry || pantry.length === 0) {
+      renderChips(pantryPreview, ["No pantry selected yet"], "muted");
+    } else {
+      renderChips(pantryPreview, pantry.slice(0, 18), "neutral");
 
-  const videoUrl = document.getElementById("videoUrl").value.trim();
-  if (!videoUrl) {
-    alert("Please paste a video link.");
-    return;
-  }
-
-  const resultCard = document.getElementById("result");
-  const spinner = document.getElementById("loadingSpinner");
-
-  resultCard.style.display = "none";
-  spinner.style.display = "block";
-
-  try {
-    // --- YouTube preview ---
-    maybeLoadYouTubePreview(videoUrl);
-
-    // --- Try Phase 1: Captions extraction ---
-    const ytId = extractYouTubeID(videoUrl);
-    if (ytId) {
-      try {
-        const captions = await fetchYouTubeCaptions(ytId);
-        const detected = extractIngredientsFromText(captions);
-
-        const pantrySet = new Set(pantry);
-        const have = detected.filter(i => pantrySet.has(i));
-        const need = detected.filter(i => !pantrySet.has(i));
-
-        displayAnalysisResult({
-          dish_name: "Detected from video",
-          confidence: "medium",
-          have,
-          need_to_buy: need
-        });
-
-        return; // Skip AI fallback
-      } catch (e) {
-        console.warn("Caption extraction failed, falling back to AI", e);
+      if (pantry.length > 18) {
+        const more = document.createElement("span");
+        more.className = "chip chip-muted";
+        more.textContent = `+${pantry.length - 18} more`;
+        pantryPreview.appendChild(more);
       }
     }
 
-    // --- Fallback AI analysis ---
-    const parsed = await analyzeVideo(videoUrl, pantry);
+    // ============================
+    // Analyze Button
+    // ============================
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const loadingBox = document.getElementById("loadingBox");
+    const resultsCard = document.getElementById("resultsCard");
+    const emptyState = document.getElementById("emptyState");
 
-    if (!parsed || (!parsed.have && !parsed.need_to_buy)) {
-      alert("Could not analyze video. Make sure the link is valid.");
-      spinner.style.display = "none";
-      return;
-    }
+    analyzeBtn.addEventListener("click", async () => {
+      clearError();
 
-    displayAnalysisResult(parsed);
+      const videoUrl = document.getElementById("videoUrl").value.trim();
+      if (!videoUrl) {
+        setError("Please paste a recipe video link first.");
+        return;
+      }
 
-  } catch (err) {
-    console.error(err);
-    alert("Error fetching analysis. Try again later.");
-  } finally {
-    spinner.style.display = "none";
-  }
-});
-</script>
+      // Show loading
+      hide(resultsCard);
+      show(emptyState);
+      show(loadingBox);
+
+      try {
+        // IMPORTANT:
+        // This calls your Flask /analyze endpoint.
+        // If your backend isn't deployed yet, this will fail.
+        const res = await fetch("https://cookable.onrender.com/analyze", ...)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            video_url: videoUrl,
+            pantry: pantry || []
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Server error");
+        }
+
+        const result = data.result || data;
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        // Fill results
+        const dishName = document.getElementById("dishName");
+        const dishSubtitle = document.getElementById("dishSubtitle");
+        const confidenceBadge = document.getElementById("confidenceBadge");
+
+        dishName.textContent = result.dish_name || "Unknown dish";
+        dishSubtitle.textContent = "Ingredients extracted from the recipe video";
+
+        const conf = typeof result.confidence === "number" ? result.confidence : null;
+        confidenceBadge.textContent = conf !== null ? `Confidence: ${conf}%` : "Confidence: --%";
+
+        renderChips(document.getElementById("haveList"), result.have || [], "have");
+        renderChips(document.getElementById("needList"), result.need_to_buy || [], "need");
+
+        // Show results
+        hide(emptyState);
+        show(resultsCard);
+
+        // Copy button
+        const copyBtn = document.getElementById("copyBtn");
+        copyBtn.onclick = async () => {
+          const need = result.need_to_buy || [];
+          const dish = result.dish_name || "Recipe";
+
+          const text = `Shopping list for: ${dish}\n\n` + need.map(x => `- ${x}`).join("\n");
+
+          try {
+            await navigator.clipboard.writeText(text);
+            copyBtn.textContent = "Copied ✔";
+            setTimeout(() => copyBtn.textContent = "Copy shopping list", 1400);
+          } catch {
+            copyBtn.textContent = "Copy failed";
+            setTimeout(() => copyBtn.textContent = "Copy shopping list", 1400);
+          }
+        };
+
+      } catch (err) {
+        setError(
+          "Error fetching analysis. Your AI backend may not be deployed yet.\n\n" +
+          "Details: " + err.message
+        );
+      } finally {
+        hide(loadingBox);
+      }
+    });
+  </script>
+
 </body>
 </html>
-
