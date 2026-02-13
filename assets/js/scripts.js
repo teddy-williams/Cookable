@@ -30,8 +30,9 @@ function renderPantryList(listElementId, defaultItems, selectedSet) {
   defaultItems.forEach(item => {
     const li = document.createElement("li");
 
+    // Optional: small food icon
     const icon = document.createElement("img");
-    icon.src = "../assets/images/food.png";
+    icon.src = "../assets/images/pantry.svg"; // replace with specific icons if you like
     icon.alt = "";
 
     li.appendChild(icon);
@@ -60,53 +61,21 @@ function addCustomPantryItem(inputId, selectedSet, listElementId, defaultItems) 
 
 // ================= Video Analysis Functions =================
 async function analyzeVideo(videoUrl, pantry) {
-  if (!pantry.length) {
-    alert("Please select your pantry first.");
-    window.location.href = "index.html";
-    return;
+  if(!pantry.length) { 
+    alert("Please select your pantry first."); 
+    window.location.href="index.html"; 
+    return; 
   }
 
-  const res = await fetch("https://cookable.onrender.com/analyze", ...}
+  const res = await fetch("/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: videoUrl })
+    body: JSON.stringify({ video_url: videoUrl, pantry })
   });
-
-  if (!res.ok) {
-    throw new Error("Failed to analyze video");
-  }
 
   const data = await res.json();
-
-  if (!data.success) {
-    throw new Error("Could not extract recipe from video");
-  }
-
-  return normalizeFlavorFetchResult(data, pantry);
-}
-
-function normalizeFlavorFetchResult(data, pantry) {
-  const ingredients = (data.ingredients || [])
-    .map(i => (i.name || "").toLowerCase());
-
-  const pantryLower = pantry.map(p => p.toLowerCase());
-
-  const have = [];
-  const needToBuy = [];
-
-  ingredients.forEach(item => {
-    if (!item) return;
-
-    const match = pantryLower.some(p => item.includes(p) || p.includes(item));
-    match ? have.push(item) : needToBuy.push(item);
-  });
-
-  return {
-    dish_name: data.title || "Recipe",
-    confidence: "AI extracted",
-    have,
-    need_to_buy: needToBuy
-  };
+  const parsed = data.result || data;
+  return parsed;
 }
 
 function displayAnalysisResult(parsed) {
@@ -128,36 +97,6 @@ function fillList(id, items) {
 }
 
 function copyShoppingList() {
-  const items = [...document.querySelectorAll("#buyList li")]
-    .map(li=>"- "+li.textContent)
-    .join("\n");
+  const items = [...document.querySelectorAll("#buyList li")].map(li=>"- "+li.textContent).join("\n");
   copyToClipboard(items);
 }
-
-// ================= YouTube Preview =================
-function maybeLoadYouTubePreview(url) {
-  const id = extractYouTubeID(url);
-  const wrapper = document.getElementById("youtubePreview");
-  const iframe = document.getElementById("ytPlayer");
-
-  if (!id) {
-    wrapper.style.display = "none";
-    iframe.src = "";
-    return;
-  }
-
-  iframe.src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
-  wrapper.style.display = "block";
-}
-
-function extractYouTubeID(url) {
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
-  );
-  return match ? match[1] : null;
-}
-
-
-
-
-
