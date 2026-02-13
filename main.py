@@ -1,21 +1,17 @@
-# main.py
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import requests
-import json
 from dotenv import load_dotenv
 
-# =================== Load environment ===================
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not OPENROUTER_API_KEY:
     raise Exception("Please set OPENROUTER_API_KEY in your .env file!")
 
-OPENROUTER_URL = "https://api.openrouter.ai/v1/chat/completions"
-
-# =================== Flask App ===================
-app = Flask(__name__, static_url_path="", static_folder="pages")
+app = Flask(__name__)
+CORS(app)
 
 # =================== AI Logic ===================
 def analyze_recipe_video(video_url: str, pantry: list[str]) -> dict:
@@ -119,3 +115,4 @@ def index():
 # =================== Run ===================
 if __name__ == "__main__":
     app.run(debug=True)
+
