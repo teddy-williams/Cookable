@@ -1,102 +1,98 @@
-// ================= Pantry Utilities =================
-function savePantry(pantry) {
-  localStorage.setItem("pantry", JSON.stringify(pantry));
-}
-
+// ===== Pantry Storage Helpers =====
 function loadPantry() {
-  return JSON.parse(localStorage.getItem("pantry")) || [];
+  // Load from localStorage or return empty array
+  try {
+    return JSON.parse(localStorage.getItem("pantry")) || [];
+  } catch (e) {
+    console.error("Error loading pantry from localStorage:", e);
+    return [];
+  }
 }
 
-// ================= Settings Utilities =================
-function saveSettings(settings) {
-  localStorage.setItem("settings", JSON.stringify(settings));
+function savePantry(items) {
+  try {
+    localStorage.setItem("pantry", JSON.stringify(items));
+  } catch (e) {
+    console.error("Error saving pantry to localStorage:", e);
+  }
 }
 
-function loadSettings() {
-  return JSON.parse(localStorage.getItem("settings")) || {};
-}
+// ===== Default Pantry Items =====
+const DEFAULT_PANTRY = [
+  "salt", "black pepper", "olive oil", "garlic", "onion",
+  "butter", "eggs", "milk", "rice", "pasta"
+];
 
-// ================= Clipboard Helper =================
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text);
-  alert("Copied to clipboard!");
-}
+let selected = new Set(); // will populate on DOMContentLoaded
 
-// ================= Pantry UI Functions =================
-function renderPantryList(listElementId, defaultItems, selectedSet) {
-  const ul = document.getElementById(listElementId);
+// ===== Render Pantry List =====
+function renderList() {
+  const ul = document.getElementById("ingredientsList");
+  if (!ul) return; // in case DOM not ready
+
   ul.innerHTML = "";
 
-  defaultItems.forEach(item => {
+  DEFAULT_PANTRY.forEach(item => {
     const li = document.createElement("li");
 
-    // Optional: small food icon
-    const icon = document.createElement("img");
-    icon.src = "../assets/images/pantry.svg"; // replace with specific icons if you like
-    icon.alt = "";
+    // emoji icon
+    const icon = document.createElement("span");
+    icon.textContent = "🥘";
+    icon.style.opacity = "0.9";
+    icon.style.marginRight = "6px";
+
+    const text = document.createElement("span");
+    text.textContent = item.charAt(0).toUpperCase() + item.slice(1);
 
     li.appendChild(icon);
-    li.appendChild(document.createTextNode(item));
+    li.appendChild(text);
 
-    if (selectedSet.has(item)) li.classList.add("selected");
+    if (selected.has(item)) li.classList.add("selected");
 
     li.onclick = () => {
-      selectedSet.has(item) ? selectedSet.delete(item) : selectedSet.add(item);
-      renderPantryList(listElementId, defaultItems, selectedSet);
-    }
+      selected.has(item) ? selected.delete(item) : selected.add(item);
+      renderList();
+    };
 
     ul.appendChild(li);
   });
 }
 
-function addCustomPantryItem(inputId, selectedSet, listElementId, defaultItems) {
-  const input = document.getElementById(inputId);
-  const val = input.value.trim();
-  if(val) { 
-    selectedSet.add(val); 
-    input.value = ""; 
-    renderPantryList(listElementId, defaultItems, selectedSet); 
+// ===== Add Custom Item =====
+function addCustomItem() {
+  const input = document.getElementById("customItem");
+  if (!input) return;
+
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+
+  selected.add(val);
+  input.value = "";
+  renderList();
+}
+
+// ===== Confirm Pantry =====
+function confirmPantry() {
+  savePantry(Array.from(selected));
+  window.location.href = "video-analysis.html";
+}
+
+// ===== Initialize on DOM Ready =====
+document.addEventListener("DOMContentLoaded", () => {
+  // Load saved pantry or default
+  const saved = loadPantry();
+  if (saved.length > 0) {
+    selected = new Set(saved);
+  } else {
+    selected = new Set(DEFAULT_PANTRY);
   }
-}
 
-// ================= Video Analysis Functions =================
-async function analyzeVideo(videoUrl, pantry) {
-  if(!pantry.length) { 
-    alert("Please select your pantry first."); 
-    window.location.href="index.html"; 
-    return; 
-  }
+  renderList();
 
-  const res = await fetch("/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ video_url: videoUrl, pantry })
-  });
+  // Attach button handlers
+  const addBtn = document.querySelector("button[onclick='addCustomItem()']");
+  const confirmBtn = document.querySelector("button[onclick='confirmPantry()']");
 
-  const data = await res.json();
-  const parsed = data.result || data;
-  return parsed;
-}
-
-function displayAnalysisResult(parsed) {
-  document.getElementById("dishName").textContent = parsed.dish_name || "Recipe";
-  document.getElementById("confidence").textContent = "Confidence: " + (parsed.confidence||"unknown");
-  fillList("haveList", parsed.have || []);
-  fillList("buyList", parsed.need_to_buy || []);
-  document.getElementById("result").style.display = "block";
-}
-
-function fillList(id, items) {
-  const ul = document.getElementById(id);
-  ul.innerHTML = "";
-  items.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    ul.appendChild(li);
-  });
-}
-
-function copyShoppingList() {
-  const items = [...document.querySelectorAll("#buyList li")].map(li=>"- "+li.textContent).join("\n");
-  copyToClipboard(items);
-}
+  if (addBtn) addBtn.addEventListener("click", addCustomItem);
+  if (confirmBtn) confirmBtn.addEventListener("click", confirmPantry);
+});
