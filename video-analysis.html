@@ -202,14 +202,14 @@
         // IMPORTANT:
         // This calls your Flask /analyze endpoint.
         // If your backend isn't deployed yet, this will fail.
-        const res = await fetch("https://cookable.onrender.com/analyze", ...)
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            video_url: videoUrl,
-            pantry: pantry || []
-          })
-        });
+       const res = await fetch("https://cookable.onrender.com/analyze", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    video_url: videoUrl,
+    pantry: pantry || []
+  })
+});
 
         const data = await res.json();
 
@@ -272,3 +272,4 @@
 
 </body>
 </html>
+
